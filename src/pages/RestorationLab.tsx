@@ -5,7 +5,7 @@ import { ImageComparisonSlider } from "@/components/ImageComparisonSlider";
 import { ProcessingLog } from "@/components/ProcessingLog";
 import { Button } from "@/components/ui/button";
 import { Play, RotateCcw, Upload, Sparkles, X } from "lucide-react";
-import { uploadImage, restoreImage } from "@/lib/api";
+import { uploadImage, restoreImage, startProcessing } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 import damagedImage from "@/assets/manuscript-damaged.jpg";
@@ -14,6 +14,7 @@ import restoredImage from "@/assets/manuscript-restored.jpg";
 const RestorationLab = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -87,8 +88,24 @@ const RestorationLab = () => {
   };
 
   const handleStartRestoration = () => {
+    if (!uploadedFile) return;
     setIsProcessing(true);
     setIsComplete(false);
+    // Start processing on backend and await final image URL
+    (async () => {
+      try {
+        const resp = await startProcessing(uploadedFile);
+        console.log('Process completed', resp);
+        if (resp && resp.url) {
+          setUploadedImage(resp.url);
+        }
+        setIsProcessing(false);
+        setIsComplete(true);
+      } catch (err) {
+        console.error('Start processing failed', err);
+        setIsProcessing(false);
+      }
+    })();
   };
 
   const handleReset = () => {
@@ -98,6 +115,14 @@ const RestorationLab = () => {
 
   const handleComplete = () => {
     setIsComplete(true);
+  };
+
+  const handleProcessingComplete = (url?: string) => {
+    if (url) {
+      setUploadedImage(url);
+    }
+    setIsComplete(true);
+    setIsProcessing(false);
   };
 
   return (
@@ -211,7 +236,8 @@ const RestorationLab = () => {
             <div className="lg:col-span-1">
               <ProcessingLog
                 isRunning={isProcessing}
-                onComplete={handleComplete}
+                onComplete={handleProcessingComplete}
+                jobId={jobId}
               />
 
               {/* Info Card */}

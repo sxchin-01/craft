@@ -16,6 +16,7 @@ dotenv.config();
 
 // Import routes
 const uploadRoutes = require('./routes/upload');
+const processRoutes = require('./routes/process');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -48,6 +49,7 @@ app.use('/uploads', express.static(path.join(__dirname, UPLOAD_DIR)));
 
 // Routes
 app.use('/api/upload', uploadRoutes);
+app.use('/api/process', processRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

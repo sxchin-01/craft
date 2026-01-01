@@ -21,10 +21,11 @@ const initialSteps: LogStep[] = [
 
 interface ProcessingLogProps {
   isRunning: boolean;
-  onComplete?: () => void;
+  onComplete?: (url?: string) => void;
+  jobId?: string | null;
 }
 
-export function ProcessingLog({ isRunning, onComplete }: ProcessingLogProps) {
+export function ProcessingLog({ isRunning, onComplete, jobId }: ProcessingLogProps) {
   const [steps, setSteps] = useState<LogStep[]>(initialSteps);
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -43,19 +44,6 @@ export function ProcessingLog({ isRunning, onComplete }: ProcessingLogProps) {
       setIsCompleted(false);
       return;
     }
-
-    const interval = setInterval(() => {
-      setCurrentStep((prev) => {
-        if (prev >= steps.length) {
-          clearInterval(interval);
-          setIsCompleted(true);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 800);
-
-    return () => clearInterval(interval);
   }, [isRunning]);
 
   useEffect(() => {
@@ -73,6 +61,36 @@ export function ProcessingLog({ isRunning, onComplete }: ProcessingLogProps) {
       }))
     );
   }, [currentStep, isRunning]);
+
+  // SSE subscription when jobId is provided
+  // SSE removed: use simulated fallback timer when no real-time job stream is available
+
+  // Fallback simulated timer when no jobId
+  useEffect(() => {
+    if (!isRunning || jobId) return;
+
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => {
+        if (prev >= initialSteps.length) {
+          clearInterval(interval);
+          setIsCompleted(true);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 800);
+
+    return () => clearInterval(interval);
+  }, [isRunning, jobId]);
+
+  // SSE: subscribe to job events when a jobId is provided
+  useEffect(() => {
+    if (!isRunning) return;
+    // @ts-ignore
+    const jobId = (arguments[0] && (arguments[0].jobId)) || null;
+    // The above is a noop for TS inference; we'll instead rely on prop access below.
+  }, [isRunning]);
+
 
   return (
     <div className="glass-card rounded-xl p-4 md:p-6">

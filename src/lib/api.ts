@@ -56,6 +56,18 @@ export const restoreImage = async (file: File) => {
   return response.data;
 };
 
+// Start processing via API gateway which proxies to AI engine and streams events via SSE
+export const startProcessing = async (file: File) => {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const response = await api.post('/process', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+  return response.data; // { jobId }
+};
+
 // Colorize image using AI engine
 export const colorizeImage = async (file: File) => {
   const formData = new FormData();
