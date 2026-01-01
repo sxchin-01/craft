@@ -1,4 +1,10 @@
-# Logs
+/.env
+/ai-engine/reconstructed_pot.png
+/start_backend.sh
+/uploads/
+node_modules/
+dist/
+/.venv/# Logs
 logs
 *.log
 npm-debug.log*

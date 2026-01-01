@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reconstruct Original Object</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; }
+    .preview { margin-top: 16px; }
+    img { max-width: 100%; height: auto; display:block; }
+  </style>
+</head>
+<body>
+  <h1>Reconstruct Original Object</h1>
+  <p>Upload multiple photos of broken fragments; the backend will generate a brand-new reconstructed image.</p>
+
+  <input id="files" type="file" accept="image/*" multiple />
+  <br /><br />
+  <button id="go">Reconstruct Original Object</button>
+
+  <div class="preview">
+    <h3>Result</h3>
+    <div id="result"></div>
+  </div>
+
+<script>
+const go = document.getElementById('go');
+const input = document.getElementById('files');
+const result = document.getElementById('result');
+let backendBase = null;
+
+async function probeBackend() {
+  const ports = [8001, 8000];
+  for (const p of ports) {
+    try {
+      const r = await fetch(`http://localhost:${p}/health`, { method: 'GET' });
+      if (r.ok) {
+        backendBase = `http://localhost:${p}`;
+        return backendBase;
+      }
+    } catch (e) {
+      // ignore and try next
+    }
+  }
+  backendBase = null;
+  return null;
+}
+
+async function ensureBackendReady() {
+  result.innerText = 'Checking backend availability...';
+  const b = await probeBackend();
+  if (!b) {
+    result.innerHTML = "Cannot reach backend on localhost:8001 or :8000.\n" +
+      "Make sure the backend is running (see start_backend.sh).";
+    return false;
+  }
+  result.innerText = 'Connected to backend at ' + backendBase;
+  return true;
+}
+
+go.addEventListener('click', async () => {
+  if (!input.files || input.files.length === 0) {
+    alert('Please choose at least one image file');
+    return;
+  }
+  const ok = await ensureBackendReady();
+  if (!ok) return;
+
+  const fd = new FormData();
+  for (const f of input.files) fd.append('files', f);
+  result.innerText = 'Generating... (this may take a while)';
+  try {
+    const res = await fetch(backendBase + '/reconstruct', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const txt = await res.text();
+      result.innerText = 'Error: ' + res.status + ' ' + txt;
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    result.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = url;
+    result.appendChild(img);
+  } catch (err) {
+    result.innerText = 'Request failed: ' + err + '\n\nTip: ensure backend is running via ./start_backend.sh';
+  }
+});
+</script>
+</body>
+</html>
